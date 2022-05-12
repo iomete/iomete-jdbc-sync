@@ -1,0 +1,9 @@
+/.envrc
+/.idea/
+/.env/
+/iomete_jdbc_sync.egg-info/
+/build/
+/.eggs/
+**/__pycache__
+/lakehouse/
+/spark-warehouse/
