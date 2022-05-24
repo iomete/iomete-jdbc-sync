@@ -81,7 +81,7 @@ class FullLoadDataSync(DataSync):
             return
 
         result = self.lakehouse.execute(
-            f"CREATE OR REPLACE TABLE managed.{staging_table_name} SELECT * FROM {proxy_table_name}")
+            f"CREATE OR REPLACE TABLE {staging_table_name} SELECT * FROM {proxy_table_name}")
         self.logger.info("sync finished!")
 
 
