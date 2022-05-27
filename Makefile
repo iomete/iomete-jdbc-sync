@@ -1,5 +1,5 @@
 docker_image := iomete/iomete_jdbc_sync
-docker_tag := 0.1.3
+docker_tag := 0.1.4
 
 docker-build:
 	# Run this for one time: docker buildx create --use
