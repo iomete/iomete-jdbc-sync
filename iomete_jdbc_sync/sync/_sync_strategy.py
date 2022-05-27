@@ -1,6 +1,5 @@
-import structlog
-
 from ._lakehouse import Lakehouse
+from .iometeLogger import iometeLogger
 from .sync_mode import SyncMode, FullLoad, IncrementalSnapshot
 
 
@@ -22,7 +21,7 @@ class DataSync:
 
 
 class IncrementalSnapshotDataSync(DataSync):
-    logger = structlog.get_logger("IncrementalSnapshotDataSync")
+    logger = iometeLogger(__name__).get_logger()
 
     def __init__(self, lakehouse: Lakehouse, incremental_load_settings: IncrementalSnapshot):
         self.lakehouse = lakehouse
@@ -67,7 +66,7 @@ class IncrementalSnapshotDataSync(DataSync):
 
 
 class FullLoadDataSync(DataSync):
-    logger = structlog.get_logger("FullLoadDataSync")
+    logger = iometeLogger(__name__).get_logger()
 
     def __init__(self, lakehouse: Lakehouse):
         self.lakehouse = lakehouse
@@ -86,7 +85,7 @@ class FullLoadDataSync(DataSync):
 
 
 class FullLoadTableRecreateDataSync(DataSync):
-    logger = structlog.get_logger("FullLoadTableRecreateDataSync")
+    logger = iometeLogger(__name__).get_logger()
 
     def __init__(self, lakehouse: Lakehouse):
         self.lakehouse = lakehouse
