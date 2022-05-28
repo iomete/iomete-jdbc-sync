@@ -1,5 +1,5 @@
 docker_image := iomete/iomete_jdbc_sync
-docker_tag := 0.1.4
+docker_tag := 0.1.5
 
 
 test:
