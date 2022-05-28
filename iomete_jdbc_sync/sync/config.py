@@ -25,8 +25,6 @@ def get_config(application_config_path) -> ApplicationConfig:
 
     destination_schema = config["destination_schema"]
 
-    print("password", config['source_connection']['password'])
-
     source_connection = None
     if config['source_connection']['type'] == 'mysql':
         source_connection = MySQLConnection(

@@ -4,7 +4,7 @@ class SyncMode:
 
 class FullLoad(SyncMode):
     def __str__(self):
-        return "FullLoad()"
+        return "FullLoad"
 
 
 class IncrementalSnapshot(SyncMode):

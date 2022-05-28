@@ -42,7 +42,7 @@ class MySQLConnection(SourceConnection):
         return 'com.mysql.jdbc.Driver'
 
     def __str__(self):
-        return f"MySQLConnection(host: '{self.host}', port: '{self.port}', schema: '{self.schema}', user_name: '{self.user_name}')"
+        return f"MySQLConnection(host: '{self.host}', schema: '{self.schema}')"
 
 
 class PostgreSQLConnection(SourceConnection):
@@ -58,4 +58,4 @@ class PostgreSQLConnection(SourceConnection):
         return 'org.postgresql.Driver'
 
     def __str__(self):
-        return f"PostgreSQLConnection(host: '{self.host}', port: '{self.port}', schema: '{self.schema}', user_name: '{self.user_name}')"
+        return f"PostgreSQLConnection(host: '{self.host}', schema: '{self.schema}')"

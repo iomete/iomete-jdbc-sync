@@ -1,4 +1,5 @@
 import logging
+import time
 
 from ._lakehouse import Lakehouse
 from ._sync_strategy import DataSyncFactory
@@ -25,15 +26,20 @@ class DataSyncer:
         self.drop_proxy_table_after_migration = True
 
     def run(self):
-        logger.info(f"Data sync started... source_connection={str(self.source_connection)}",)
+        logger.info(f"Data sync started for connection={str(self.source_connection)}")
+        start_time = time.time()
 
         for sync_config in self.sync_configs:
             for table_name in sync_config.table_names:
                 self.__migrate_table(table_name, sync_config.sync_mode)
+        
+        end_time = time.time()
+        logger.info(f"Data sync completed for connection={str(self.source_connection)} in {end_time - start_time:0.2f} seconds")
 
     def __migrate_table(self, table_name: str, sync_mode: SyncMode):
-        logger.info(f"Syncing table={table_name}, and sync_mode={sync_mode}")
-
+        logger.info(f"{table_name} table: sync started with mode={sync_mode}")
+        start_time = time.time()
+        
         proxy_table_name = self.lakehouse.proxy_table(table_name)
         staging_table_name = self.lakehouse.staging_table_name(table_name)
 
@@ -46,10 +52,11 @@ class DataSyncer:
         data_sync.sync(proxy_table_name, staging_table_name)
 
         if self.drop_proxy_table_after_migration:
-            logger.info(f"Cleaning up proxy table: {proxy_table_name}")
+            logger.debug(f"Cleaning up proxy table: {proxy_table_name}")
             self.lakehouse.execute(f"DROP TABLE {proxy_table_name}")
 
-        logger.info(f"Data sync completed for table: {table_name}")
+        end_time = time.time()
+        logger.info(f"{table_name} table: completed in {end_time - start_time:0.2f} seconds")
 
     def __create_proxy_table(self, table_name: str, proxy_table_name):
         self.lakehouse.create_database_if_not_exists()
