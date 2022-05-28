@@ -1,13 +1,13 @@
+import logging
 import re
 
-from iomete_jdbc_sync.sync.iometeLogger import iometeLogger
+logger = logging.getLogger(__name__)
 
 
 class Lakehouse:
     def __init__(self, spark, db_name: str):
         self.spark = spark
         self.db_name = db_name
-        self.logger = iometeLogger(__name__).get_logger()
 
     def proxy_table(self, table_name: str):
         return f"{self.db_name}.__{table_name}_proxy"
@@ -24,7 +24,7 @@ class Lakehouse:
         return self.spark.table(full_table_name).schema.names
 
     def execute(self, query):
-        self.logger.info("Executing query", query=Lakehouse.__safe_string_for_log(query))
+        logger.debug("Executing query: %s", self.__safe_string_for_log(query))
         return self.spark.sql(query).collect()
 
     def create_database_if_not_exists(self):

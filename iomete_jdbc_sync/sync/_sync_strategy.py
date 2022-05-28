@@ -1,5 +1,6 @@
+import logging
+
 from ._lakehouse import Lakehouse
-from .iometeLogger import iometeLogger
 from .sync_mode import SyncMode, FullLoad, IncrementalSnapshot
 
 
@@ -21,16 +22,15 @@ class DataSync:
 
 
 class IncrementalSnapshotDataSync(DataSync):
-    logger = iometeLogger(__name__).get_logger()
 
     def __init__(self, lakehouse: Lakehouse, incremental_load_settings: IncrementalSnapshot):
+        self.logger = logging.getLogger(self.__class__.__name__)
         self.lakehouse = lakehouse
         self.incremental_load_settings = incremental_load_settings
         self.full_load_table_recreate_data_migration = FullLoadTableRecreateDataSync(lakehouse)
 
     def sync(self, proxy_table_name, staging_table_name):
-        self.logger.info("IncrementalSnapshotDataSync.sync", proxy_table_name=proxy_table_name,
-                         staging_table_name=staging_table_name)
+        self.logger.info("sync proxy_table_name: %s, staging_table_name: %s", proxy_table_name, staging_table_name)
         if not self.lakehouse.table_exists(staging_table_name):
             self.logger.info("Table doesn't exists. Doing full dump")
             self.full_load_table_recreate_data_migration.sync(proxy_table_name, staging_table_name)
@@ -62,18 +62,19 @@ class IncrementalSnapshotDataSync(DataSync):
 
         result = self.lakehouse.execute(merge_query)
 
-        self.logger.info("sync finished!", result=result)
+        self.logger.info("sync finished! result: %s", result)
 
 
 class FullLoadDataSync(DataSync):
-    logger = iometeLogger(__name__).get_logger()
-
     def __init__(self, lakehouse: Lakehouse):
+        self.logger = logging.getLogger(self.__class__.__name__)
         self.lakehouse = lakehouse
         self.full_load_table_recreate_data_migration = FullLoadTableRecreateDataSync(lakehouse)
 
     def sync(self, proxy_table_name, staging_table_name):
-        self.logger.info("Sync started...", proxy_table_name=proxy_table_name, staging_table_name=staging_table_name)
+        self.logger.info("Sync started..., proxy_table_name: %s, staging_table_name: %s",
+                         proxy_table_name, staging_table_name)
+
         if not self.lakehouse.table_exists(staging_table_name):
             self.logger.info("Table doesn't exists. Doing full dump")
             self.full_load_table_recreate_data_migration.sync(proxy_table_name, staging_table_name)
@@ -85,14 +86,13 @@ class FullLoadDataSync(DataSync):
 
 
 class FullLoadTableRecreateDataSync(DataSync):
-    logger = iometeLogger(__name__).get_logger()
-
     def __init__(self, lakehouse: Lakehouse):
+        self.logger = logging.getLogger(self.__class__.__name__)
         self.lakehouse = lakehouse
 
     def sync(self, proxy_table_name, staging_table_name):
-        self.logger.info("Sync started...", proxy_table_name=proxy_table_name,
-                         staging_table_name=staging_table_name)
+        self.logger.info("Sync started..., proxy_table_name: %s, staging_table_name: %s",
+                         proxy_table_name, staging_table_name)
         self.lakehouse.create_database_if_not_exists()
 
         self.lakehouse.execute(

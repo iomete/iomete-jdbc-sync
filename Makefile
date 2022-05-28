@@ -1,6 +1,10 @@
 docker_image := iomete/iomete_jdbc_sync
 docker_tag := 0.1.4
 
+
+test:
+	pytest --capture=no --log-cli-level=DEBUG
+
 docker-build:
 	# Run this for one time: docker buildx create --use
 	docker build -f docker/Dockerfile -t ${docker_image}:${docker_tag} .
