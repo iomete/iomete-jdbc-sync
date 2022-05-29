@@ -4,7 +4,7 @@ class SyncMode:
 
 class FullLoad(SyncMode):
     def __str__(self):
-        return "FullLoad"
+        return "full_load"
 
 
 class IncrementalSnapshot(SyncMode):
@@ -13,4 +13,4 @@ class IncrementalSnapshot(SyncMode):
         self.tracking_column = tracking_column
 
     def __str__(self):
-        return f"IncrementalSnapshot(identification_column: '{self.identification_column}', tracking_column: '{self.tracking_column}')"
+        return f"incremental_snapshot(identification_column: '{self.identification_column}', tracking_column: '{self.tracking_column}')"

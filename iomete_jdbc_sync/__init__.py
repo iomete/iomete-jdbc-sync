@@ -1,1 +1,1 @@
-from .sync import TableConfig, DataSyncer
+from .sync import DataSyncer

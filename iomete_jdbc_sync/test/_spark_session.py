@@ -24,5 +24,5 @@ def get_spark_session():
         .config("spark.sql.sources.default", "iceberg") \
         .getOrCreate()
 
-    # spark.sparkContext.setLogLevel("ERROR")
+    spark.sparkContext.setLogLevel("ERROR")
     return spark
