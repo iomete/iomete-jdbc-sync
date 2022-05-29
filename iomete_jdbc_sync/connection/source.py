@@ -14,6 +14,13 @@ class SourceConnection:
     def jdbc_driver(self):
         return None
 
+    def proxy_table_definition_for_info_schema(self, proxy_table_name):
+        return self.proxy_table_definition(
+            source_schema="information_schema",
+            source_table="TABLES",
+            proxy_table_name=proxy_table_name
+        )
+
     def proxy_table_definition(self, source_schema, source_table, proxy_table_name):
         return f"""
             CREATE TABLE IF NOT EXISTS {proxy_table_name}
@@ -46,7 +53,7 @@ class MySQLConnection(SourceConnection):
 
 
 class PostgreSQLConnection(SourceConnection):
-    def __init__(self, host: str, port: str, schema: str, user_name: str, user_pass: str):
+    def __init__(self, host: str, port: str, user_name: str, user_pass: str):
         super().__init__(host, port, user_name, user_pass)
 
     @property

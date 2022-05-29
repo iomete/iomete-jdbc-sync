@@ -35,17 +35,39 @@ class SyncSingleConfig:
         self.lakehouse = Lakehouse(spark=spark, db_name=sync_config.destination.schema)
 
     def sync_tables(self):
-        self.__log_tables()
+        table_names = self.sync_config.source.tables
+        if self.sync_config.source.is_all_tables:
+            table_names = self.__get_table_names_of_source_database()
 
-        max_table_name_length = max([len(table_name) for table_name in self.sync_config.source.tables])
+        table_names = set(table_names) - set(self.sync_config.source.exclude_tables or [])
 
-        for table_name in self.sync_config.source.tables:
+        self.__log_tables(table_names)
+
+        max_table_name_length = max([len(table_name) for table_name in table_names])
+
+        for table_name in table_names:
             message = f"[{table_name: <{max_table_name_length}}]: table sync"
-            timer(message)(self.__sync_table)(table_name)
+            table_timer(message)(self.__sync_table)(table_name)
 
-    def __log_tables(self):
+    def __get_table_names_of_source_database(self):
+        information_tables_proxy_name = "information_tables_proxy"
+        self.lakehouse.execute(
+            self.source_connection.proxy_table_definition_for_info_schema(information_tables_proxy_name))
+
+        tables = self.lakehouse.execute(f"""
+                    select * from {information_tables_proxy_name} 
+                        where TABLE_SCHEMA = '{self.sync_config.source.schema}'""")
+
+        table_names = [table.TABLE_NAME for table in tables]
+
+        self.lakehouse.execute(f"drop table if exists {information_tables_proxy_name}")
+
+        return table_names
+
+    @staticmethod
+    def __log_tables(table_names):
         new_line_tab = "\n\t"
-        log_tables = new_line_tab.join([table for table in self.sync_config.source.tables])
+        log_tables = new_line_tab.join([table for table in table_names])
         logger.info(f"Following tables will be synced: {new_line_tab}{log_tables}")
 
     def __sync_table(self, table_name: str):
@@ -60,9 +82,13 @@ class SyncSingleConfig:
 
         data_sync.sync(proxy_table_name, staging_table_name)
 
+        current_rows_count = self.lakehouse.query_single_value(f"select count(1) from {staging_table_name}")
+
         if self.drop_proxy_table_after_migration:
             logger.debug(f"Cleaning up proxy table: {proxy_table_name}")
             self.lakehouse.execute(f"DROP TABLE {proxy_table_name}")
+
+        return current_rows_count
 
     def __create_proxy_table(self, table_name: str, proxy_table_name):
         self.lakehouse.create_database_if_not_exists()
@@ -83,6 +109,21 @@ def timer(message: str):
             duration = (time.time() - start_time)
             logger.info(f"{message} completed in {duration:0.2f} seconds")
             return result
+
+        return timer_func
+
+    return timer_decorator
+
+
+def table_timer(message: str):
+    def timer_decorator(method):
+        def timer_func(*args, **kw):
+            logger.info(f"{message} started")
+            start_time = time.time()
+            total_rows = method(*args, **kw)
+            duration = (time.time() - start_time)
+            logger.info(f"{message} completed in {duration:0.2f} seconds. Total rows: {total_rows}")
+            return total_rows
 
         return timer_func
 

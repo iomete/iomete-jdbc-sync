@@ -11,6 +11,8 @@ from pyhocon import ConfigFactory
 class SyncSource:
     schema: str
     tables: List[str]
+    is_all_tables: bool = False
+    exclude_tables: List[str] = None
 
 
 @dataclass
@@ -43,32 +45,32 @@ def get_config(application_config_path) -> ApplicationConfig:
             user_pass=config['source_connection']['password']
         )
 
-    sync_configs = []
-    for sync_config in config["syncs"] or []:
+    def parse_sync_config(sync_config):
+        sync_mode = None
         if sync_config["sync_mode"]["type"] == "full_load":
-            sync_configs.append(
-                SyncConfig(
-                    source=SyncSource(sync_config["source"]["schema"], sync_config["source"]["tables"]),
-                    destination=SyncDestination(sync_config["destination"]["schema"]),
-                    sync_mode=FullLoad()
-                )
-            )
+            sync_mode = FullLoad()
         elif sync_config["sync_mode"]["type"] == "incremental_snapshot":
-            sync_configs.append(
-                SyncConfig(
-                    source=SyncSource(sync_config["source"]["schema"], sync_config["source"]["tables"]),
-                    destination=SyncDestination(sync_config["destination"]["schema"]),
-                    sync_mode=IncrementalSnapshot(
-                        sync_config["sync_mode"]["identification_column"],
-                        sync_config["sync_mode"]["tracking_column"]
-                    )
-                )
+            sync_mode = IncrementalSnapshot(
+                sync_config["sync_mode"]["identification_column"],
+                sync_config["sync_mode"]["tracking_column"]
             )
         else:
             raise Exception("Unknown sync mode {}, allowed sync modes are: {}".format(
                 sync_config["sync_mode"]["type"], ["full_load", "incremental_snapshot"]))
 
+        source_tables = sync_config["source"]["tables"]
+        return SyncConfig(
+            source=SyncSource(
+                schema=sync_config["source"]["schema"],
+                tables=source_tables,
+                is_all_tables=source_tables and source_tables[0] == "*",
+                exclude_tables=sync_config.get("source.exclude_tables", [])
+            ),
+            destination=SyncDestination(sync_config["destination"]["schema"]),
+            sync_mode=sync_mode
+        )
+
     return ApplicationConfig(
         source_connection=source_connection,
-        sync_configs=sync_configs
+        sync_configs=[parse_sync_config(sync_config) for sync_config in config["syncs"] or []]
     )

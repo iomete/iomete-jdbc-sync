@@ -3,8 +3,6 @@ import os
 
 FORMAT = "[%(levelname)8s] %(name)s: %(message)s"
 
-DEBUG = 'DEBUG'
-
 levels = [
     'CRITICAL',
     'ERROR',
@@ -39,7 +37,7 @@ def _get_level():
     env_level = os.getenv("LOG_LEVEL")
     if env_level is not None and env_level in levels:
         return env_level.upper()
-    return DEBUG
+    return "INFO"
 
 
 def _get_format():
