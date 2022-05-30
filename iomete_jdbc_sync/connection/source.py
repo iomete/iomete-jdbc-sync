@@ -46,7 +46,7 @@ class MySQLConnection(SourceConnection):
 
     @property
     def jdbc_driver(self):
-        return 'com.mysql.jdbc.Driver'
+        return 'com.mysql.cj.jdbc.Driver'
 
     def __str__(self):
         return f"MySQLConnection(host: '{self.host}')"
