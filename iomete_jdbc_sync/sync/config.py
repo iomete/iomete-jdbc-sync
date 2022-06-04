@@ -6,11 +6,19 @@ from iomete_jdbc_sync.connection.source import MySQLConnection
 from iomete_jdbc_sync.sync.sync_mode import SyncMode, FullLoad, IncrementalSnapshot
 from pyhocon import ConfigFactory
 
+from sync.utils import table_name_extractor
+
+
+@dataclass
+class Table:
+    name: str
+    definition: str
+
 
 @dataclass
 class SyncSource:
     schema: str
-    tables: List[str]
+    tables: List[Table]
     is_all_tables: bool = False
     exclude_tables: List[str] = None
 
@@ -59,10 +67,11 @@ def get_config(application_config_path) -> ApplicationConfig:
                 sync_config["sync_mode"]["type"], ["full_load", "incremental_snapshot"]))
 
         source_tables = sync_config["source"]["tables"]
+        tables = [Table(name=table_name_extractor(tbl.strip()), definition=tbl) for tbl in source_tables]
         return SyncConfig(
             source=SyncSource(
                 schema=sync_config["source"]["schema"],
-                tables=source_tables,
+                tables=tables,
                 is_all_tables=source_tables and source_tables[0] == "*",
                 exclude_tables=sync_config.get("source.exclude_tables", [])
             ),

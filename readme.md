@@ -22,7 +22,7 @@ You can define sync mode for each table. Currently, supported sync modes are:
 Specify the following parameters (these are examples, you can change them based on your preference):
 - **Name:** `jdbc-sync-job`
 - **Schedule:** `0 0/22 1/1 * *`
-- **Docker Image:** `iomete/iomete_jdbc_sync:0.2.1`
+- **Docker Image:** `iomete/iomete_jdbc_sync:0.3.0`
 - **Main application file:** `local:///app/driver.py`
 - **Environment Variables:** `DB_PASSWORD`: `9tVDVEKp`
 - **Config file:** 
@@ -33,20 +33,31 @@ Specify the following parameters (these are examples, you can change them based 
         host: "iomete-tutorial.cetmtjnompsh.eu-central-1.rds.amazonaws.com",
         port: 3306,
         username: tutorial_user,
-        password: ${DB_PASSWORD}
+        password: "9tVDVEKp"
     },
     syncs: [
         {
             source.schema: employees
             source.tables: ["*"]
-            source.exclude_tables: ["salaries"]
+            source.exclude_tables: [departments, dept_manager, salaries]
             destination.schema: employees_raw
             sync_mode.type: full_load
         },
         {
             source.schema: employees
             source.tables: [ departments, dept_manager ]
-            destination.schema: employees_dep
+            destination.schema: employees_raw
+            sync_mode.type: full_load
+        },
+        {
+            source.schema: employees
+            source.tables: [
+                """
+                (SELECT emp_no, sum(salary) total_salary FROM salaries group by emp_no)
+                as total_salaries
+                """
+            ]
+            destination.schema: employees_raw
             sync_mode.type: full_load
         }
     ]

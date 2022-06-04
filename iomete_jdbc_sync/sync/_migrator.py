@@ -3,7 +3,7 @@ import time
 
 from ._lakehouse import Lakehouse
 from ._sync_strategy import DataSyncFactory
-from .config import ApplicationConfig, SyncConfig
+from .config import ApplicationConfig, SyncConfig, Table
 
 logger = logging.getLogger(__name__)
 
@@ -35,46 +35,48 @@ class SyncSingleConfig:
         self.lakehouse = Lakehouse(spark=spark, db_name=sync_config.destination.schema)
 
     def sync_tables(self):
-        table_names = self.sync_config.source.tables
+        tables = self.sync_config.source.tables
         if self.sync_config.source.is_all_tables:
-            table_names = self.__get_table_names_of_source_database()
+            tables = self.__get_tables_of_source_database()
 
-        table_names = set(table_names) - set(self.sync_config.source.exclude_tables or [])
+        exclude_tables = set(self.sync_config.source.exclude_tables or [])
 
-        self.__log_tables(table_names)
+        tables = [table for table in tables if table.name not in exclude_tables]
 
-        max_table_name_length = max([len(table_name) for table_name in table_names])
+        self.__log_tables(tables)
 
-        for table_name in table_names:
-            message = f"[{table_name: <{max_table_name_length}}]: table sync"
-            table_timer(message)(self.__sync_table)(table_name)
+        max_table_name_length = max([len(table.name) for table in tables])
 
-    def __get_table_names_of_source_database(self):
+        for table in tables:
+            message = f"[{table.name: <{max_table_name_length}}]: table sync"
+            table_timer(message)(self.__sync_table)(table)
+
+    def __get_tables_of_source_database(self):
         information_tables_proxy_name = "information_tables_proxy"
         self.lakehouse.execute(
             self.source_connection.proxy_table_definition_for_info_schema(information_tables_proxy_name))
 
-        tables = self.lakehouse.execute(f"""
+        source_tables = self.lakehouse.execute(f"""
                     select * from {information_tables_proxy_name} 
                         where TABLE_SCHEMA = '{self.sync_config.source.schema}'""")
 
-        table_names = [table.TABLE_NAME for table in tables]
+        tables = [Table(name=tbl.TABLE_NAME, definition=tbl.TABLE_NAME) for tbl in source_tables]
 
         self.lakehouse.execute(f"drop table if exists {information_tables_proxy_name}")
 
-        return table_names
+        return tables
 
     @staticmethod
-    def __log_tables(table_names):
-        new_line_tab = "\n\t"
-        log_tables = new_line_tab.join([table for table in table_names])
+    def __log_tables(tables):
+        new_line_tab = "\n\t- "
+        log_tables = new_line_tab.join([table.name for table in tables])
         logger.info(f"Following tables will be synced: {new_line_tab}{log_tables}")
 
-    def __sync_table(self, table_name: str):
-        proxy_table_name = self.lakehouse.proxy_table_name(table_name)
-        staging_table_name = self.lakehouse.staging_table_name(table_name)
+    def __sync_table(self, table: Table):
+        proxy_table_name = self.lakehouse.proxy_table_name(table.name)
+        staging_table_name = self.lakehouse.staging_table_name(table.name)
 
-        self.__create_proxy_table(table_name, proxy_table_name)
+        self.__create_proxy_table(source_table=table.definition, proxy_table_name=proxy_table_name)
 
         data_sync = DataSyncFactory.instance_for(
             sync_mode=self.sync_config.sync_mode, lakehouse=self.lakehouse
@@ -90,13 +92,13 @@ class SyncSingleConfig:
 
         return current_rows_count
 
-    def __create_proxy_table(self, table_name: str, proxy_table_name):
+    def __create_proxy_table(self, source_table: str, proxy_table_name):
         self.lakehouse.create_database_if_not_exists()
 
         self.lakehouse.execute(
             self.source_connection.proxy_table_definition(
                 source_schema=self.sync_config.source.schema,
-                source_table=table_name,
+                source_table=source_table,
                 proxy_table_name=proxy_table_name))
 
 

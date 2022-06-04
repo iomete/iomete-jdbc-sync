@@ -2,12 +2,10 @@ class SourceConnection:
     def __init__(self, host: str, port: str, user_name: str, user_pass: str):
         self.host = host
         self.port = port
-        # self.schema = schema
         self.user_name = user_name
         self.user_pass = user_pass
 
-    @property
-    def jdbc_url(self):
+    def jdbc_url(self, schema):
         return None
 
     @property
@@ -26,8 +24,8 @@ class SourceConnection:
             CREATE TABLE IF NOT EXISTS {proxy_table_name}
             USING org.apache.spark.sql.jdbc
             OPTIONS (
-              url '{self.jdbc_url}',
-              dbtable '{source_schema}.{source_table}',
+              url '{self.jdbc_url(source_schema)}',
+              dbtable '{source_table}',
               user '{self.user_name}',
               password '{self.user_pass}',
               driver '{self.jdbc_driver}',
@@ -40,9 +38,8 @@ class MySQLConnection(SourceConnection):
     def __init__(self, host: str, port: str, user_name: str, user_pass: str):
         super().__init__(host, port, user_name, user_pass)
 
-    @property
-    def jdbc_url(self):
-        return f'jdbc:mysql://{self.host}:{self.port}/?zeroDateTimeBehavior=convertToNull'
+    def jdbc_url(self, schema):
+        return f'jdbc:mysql://{self.host}:{self.port}/{schema}?zeroDateTimeBehavior=convertToNull'
 
     @property
     def jdbc_driver(self):
@@ -56,9 +53,8 @@ class PostgreSQLConnection(SourceConnection):
     def __init__(self, host: str, port: str, user_name: str, user_pass: str):
         super().__init__(host, port, user_name, user_pass)
 
-    @property
-    def jdbc_url(self):
-        return f'jdbc:postgresql://{self.host}:{self.port}/'
+    def jdbc_url(self, schema):
+        return f'jdbc:postgresql://{self.host}:{self.port}/{schema}'
 
     @property
     def jdbc_driver(self):
