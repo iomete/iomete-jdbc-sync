@@ -1,5 +1,5 @@
 docker_image := iomete/iomete_jdbc_sync
-docker_tag := 0.3.1
+docker_tag := 0.3.2
 
 test:
 	pytest --capture=no --log-cli-level=DEBUG

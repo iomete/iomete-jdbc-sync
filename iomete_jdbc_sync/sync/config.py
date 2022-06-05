@@ -14,6 +14,12 @@ class Table:
     name: str
     definition: str
 
+    def quoted_definition(self):
+        if " " not in self.definition:
+            return f"`{self.definition}`"
+
+        return self.definition
+
 
 @dataclass
 class SyncSource:

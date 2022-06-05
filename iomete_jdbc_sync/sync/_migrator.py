@@ -76,7 +76,7 @@ class SyncSingleConfig:
         proxy_table_name = self.lakehouse.proxy_table_name(table.name)
         staging_table_name = self.lakehouse.staging_table_name(table.name)
 
-        self.__create_proxy_table(source_table=table.definition, proxy_table_name=proxy_table_name)
+        self.__create_proxy_table(source_table=table.quoted_definition(), proxy_table_name=proxy_table_name)
 
         data_sync = DataSyncFactory.instance_for(
             sync_mode=self.sync_config.sync_mode, lakehouse=self.lakehouse
