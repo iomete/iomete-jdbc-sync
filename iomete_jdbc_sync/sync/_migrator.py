@@ -49,7 +49,7 @@ class SyncSingleConfig:
 
         for table in tables:
             message = f"[{table.name: <{max_table_name_length}}]: table sync"
-            table_timer(message)(self.__sync_table)(table)
+            timer(message)(self.__sync_table)(table)
 
     def __get_tables_of_source_database(self):
         information_tables_proxy_name = "information_tables_proxy"
@@ -84,13 +84,9 @@ class SyncSingleConfig:
 
         data_sync.sync(proxy_table_name, staging_table_name)
 
-        current_rows_count = self.lakehouse.query_single_value(f"select count(1) from {staging_table_name}")
-
         if self.drop_proxy_table_after_migration:
             logger.debug(f"Cleaning up proxy table: {proxy_table_name}")
             self.lakehouse.execute(f"DROP TABLE {proxy_table_name}")
-
-        return current_rows_count
 
     def __create_proxy_table(self, source_table: str, proxy_table_name):
         self.lakehouse.create_database_if_not_exists()
@@ -111,21 +107,6 @@ def timer(message: str):
             duration = (time.time() - start_time)
             logger.info(f"{message} completed in {duration:0.2f} seconds")
             return result
-
-        return timer_func
-
-    return timer_decorator
-
-
-def table_timer(message: str):
-    def timer_decorator(method):
-        def timer_func(*args, **kw):
-            logger.info(f"{message} started")
-            start_time = time.time()
-            total_rows = method(*args, **kw)
-            duration = (time.time() - start_time)
-            logger.info(f"{message} completed in {duration:0.2f} seconds. Total rows: {total_rows}")
-            return total_rows
 
         return timer_func
 
