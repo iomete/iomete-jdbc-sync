@@ -9,8 +9,9 @@ class Lakehouse:
         self.spark = spark
         self.db_name = db_name
 
-    def proxy_table_name(self, table_name: str):
-        return f"{self.db_name}.__{table_name}_proxy"
+    @staticmethod
+    def proxy_table_name(table_name: str):
+        return f"__{table_name}_proxy"
 
     def staging_table_name(self, table_name: str):
         return f"{self.db_name}.{table_name}"

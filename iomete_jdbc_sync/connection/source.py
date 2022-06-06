@@ -1,3 +1,6 @@
+import uuid
+
+
 class SourceConnection:
     def __init__(self, host: str, port: str, user_name: str, user_pass: str):
         self.host = host
@@ -12,17 +15,18 @@ class SourceConnection:
     def jdbc_driver(self):
         return None
 
-    def proxy_table_definition_for_info_schema(self, proxy_table_name):
+    def proxy_table_definition_for_info_schema(self):
         return self.proxy_table_definition(
             source_schema="information_schema",
-            source_table="TABLES",
-            proxy_table_name=proxy_table_name
+            source_table="TABLES"
         )
 
-    def proxy_table_definition(self, source_schema, source_table, proxy_table_name):
-        return f"""
-            CREATE TABLE IF NOT EXISTS {proxy_table_name}
-            USING org.apache.spark.sql.jdbc
+    def proxy_table_definition(self, source_schema, source_table):
+        clean_uuid = str(uuid.uuid1()).replace("-", "_")
+        proxy_table_name = f"___proxy_{clean_uuid}"
+        return proxy_table_name, f"""
+            CREATE TEMPORARY TABLE {proxy_table_name}
+            USING jdbc
             OPTIONS (
               url '{self.jdbc_url(source_schema)}',
               dbtable '{source_table}',

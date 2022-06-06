@@ -30,9 +30,9 @@ class SyncSingleConfig:
     def __init__(self, spark, source_connection, sync_config: SyncConfig):
         self.source_connection = source_connection
         self.sync_config = sync_config
-        self.drop_proxy_table_after_migration = True
 
         self.lakehouse = Lakehouse(spark=spark, db_name=sync_config.destination.schema)
+        self.lakehouse.create_database_if_not_exists()
 
     def sync_tables(self):
         tables = self.sync_config.source.tables
@@ -52,17 +52,16 @@ class SyncSingleConfig:
             timer(message)(self.__sync_table)(table)
 
     def __get_tables_of_source_database(self):
-        information_tables_proxy_name = "information_tables_proxy"
-        self.lakehouse.execute(
-            self.source_connection.proxy_table_definition_for_info_schema(information_tables_proxy_name))
+        proxy_table, proxy_table_definition = \
+            self.source_connection.proxy_table_definition_for_info_schema()
+
+        self.lakehouse.execute(proxy_table_definition)
 
         source_tables = self.lakehouse.execute(f"""
-                    select * from {information_tables_proxy_name} 
+                    select * from {proxy_table} 
                         where TABLE_SCHEMA = '{self.sync_config.source.schema}'""")
 
         tables = [Table(name=tbl.TABLE_NAME, definition=tbl.TABLE_NAME) for tbl in source_tables]
-
-        self.lakehouse.execute(f"drop table if exists {information_tables_proxy_name}")
 
         return tables
 
@@ -73,24 +72,18 @@ class SyncSingleConfig:
         logger.info(f"Following tables will be synced: {new_line_tab}{log_tables}")
 
     def __sync_table(self, table: Table):
-        proxy_table_name = self.lakehouse.proxy_table_name(table.name)
-        staging_table_name = self.lakehouse.staging_table_name(table.name)
-
-        self.__create_proxy_table(source_table=table.quoted_definition(), proxy_table_name=proxy_table_name)
+        proxy_table_name, proxy_table_definition = self.source_connection.proxy_table_definition(
+            source_schema=self.sync_config.source.schema,
+            source_table=table.quoted_definition())
+        self.lakehouse.execute(proxy_table_definition)
 
         data_sync = DataSyncFactory.instance_for(
             sync_mode=self.sync_config.sync_mode, lakehouse=self.lakehouse
         )
-
-        data_sync.sync(proxy_table_name, staging_table_name)
-
-        if self.drop_proxy_table_after_migration:
-            logger.debug(f"Cleaning up proxy table: {proxy_table_name}")
-            self.lakehouse.execute(f"DROP TABLE {proxy_table_name}")
+        data_sync.sync(proxy_table_name=proxy_table_name,
+                       staging_table_name=self.lakehouse.staging_table_name(table.name))
 
     def __create_proxy_table(self, source_table: str, proxy_table_name):
-        self.lakehouse.create_database_if_not_exists()
-
         self.lakehouse.execute(
             self.source_connection.proxy_table_definition(
                 source_schema=self.sync_config.source.schema,
