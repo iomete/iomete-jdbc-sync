@@ -1,7 +1,7 @@
 from pyspark.sql import SparkSession
 
 jar_dependencies = [
-    "org.apache.iceberg:iceberg-spark3-runtime:0.13.1",
+    "org.apache.iceberg:iceberg-spark-runtime-3.2_2.12:0.13.1",
     "com.amazonaws:aws-java-sdk-bundle:1.11.920",
     "org.apache.hadoop:hadoop-aws:3.2.0",
     "mysql:mysql-connector-java:8.0.27"
